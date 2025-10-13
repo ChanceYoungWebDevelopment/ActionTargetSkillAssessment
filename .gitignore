@@ -1,0 +1,16 @@
+# Ignore built binaries
+/bin/
+*.exe
+*.out
+*.test
+
+# Editor/OS files
+.vscode/
+.DS_Store
+.idea/
+
+# Logs
+*.log
+
+# Environment files (if ever used)
+.env
