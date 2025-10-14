@@ -33,12 +33,12 @@ func Parse() (Config, error) {
 	flag.StringVar(&hostsRaw, "hosts", "8.8.8.8", "comma list or @/path/to/file")
 	flag.DurationVar(&interval, "interval", 2*time.Second, "probe interval")
 	flag.DurationVar(&timeout, "timeout", 800*time.Millisecond, "per-probe timeout (must be < interval)")
-	flag.IntVar(&port, "port", 8080, "http port")
+	flag.IntVar(&port, "port", 8090, "http port")
 	flag.BoolVar(&privileged, "privileged", false, "use raw ICMP (needs CAP_NET_RAW)")
 	flag.IntVar(&window, "window", 120, "rolling window size (samples)")
 	flag.IntVar(&downAfter, "down-after", 3, "consecutive failures to mark DOWN")
 	flag.DurationVar(&push, "push-interval", 1*time.Second, "UI/SSE push interval")
-	flag.StringVar(&webdir, "web-dir", "./web", "static assets directory")
+	flag.StringVar(&webdir, "web-dir", "", "static assets directory")
 
 	flag.Parse()
 
@@ -70,8 +70,8 @@ func Parse() (Config, error) {
 		Privileged:   privileged,
 		Window:       window,
 		DownAfter:    downAfter,
-		PushInterval: push,
-		WebDir:       webdir,
+		//PushInterval: push,
+		//WebDir:       webdir,
 	}, nil
 }
 

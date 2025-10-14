@@ -3,9 +3,8 @@ package web
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/http"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -15,7 +14,9 @@ import (
 type Options struct {
 	Addr         string
 	PushInterval time.Duration
-	StaticDir    string
+	// Optional dev overrides (one or neither):
+	StaticFS  fs.FS  // if set, serve from this FS
+	StaticDir string // else if set, serve from disk dir
 }
 
 type Server struct {
@@ -24,24 +25,31 @@ type Server struct {
 
 	mu   sync.Mutex
 	subs map[chan []byte]struct{}
-
 	httpSrv *http.Server
 }
 
 func NewServer(opts Options, mgr *monitor.Manager) *Server {
-	return &Server{
-		opts: opts,
-		mgr:  mgr,
-		subs: make(map[chan []byte]struct{}),
-	}
+	return &Server{opts: opts, mgr: mgr, subs: make(map[chan []byte]struct{})}
 }
 
 func (s *Server) Serve() error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.handleIndex)
+
+	// APIs first
 	mux.HandleFunc("/api/snapshot", s.handleSnapshot)
 	mux.HandleFunc("/api/stream", s.handleStream)
-	mux.Handle("/web/", http.StripPrefix("/web/", http.FileServer(http.Dir(s.opts.StaticDir))))
+
+	// Static last, mounted at "/"
+	var static http.Handler
+	switch {
+	case s.opts.StaticFS != nil:
+		static = http.FileServer(http.FS(s.opts.StaticFS))
+	case s.opts.StaticDir != "":
+		static = http.FileServer(http.Dir(s.opts.StaticDir))
+	default:
+		static = http.FileServer(http.FS(defaultStaticFS()))
+	}
+	mux.Handle("/", static)
 
 	s.httpSrv = &http.Server{Addr: s.opts.Addr, Handler: mux}
 
@@ -54,17 +62,9 @@ func (s *Server) Shutdown(shutdownCtx interface{ Done() <-chan struct{} }) error
 	return s.httpSrv.Close()
 }
 
-func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r); return
-	}
-	path := filepath.Join(s.opts.StaticDir, "index.html")
-	http.ServeFile(w, r, path)
-}
-
 func (s *Server) handleSnapshot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(s.mgr.SnapshotAll())
+	_ = json.NewEncoder(w).Encode(s.mgr.SnapshotAll())
 }
 
 func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
@@ -114,5 +114,4 @@ func (s *Server) broadcastLoop() {
 		}
 		s.mu.Unlock()
 	}
-	_ = os.Stderr // keep import sanity if unused
 }

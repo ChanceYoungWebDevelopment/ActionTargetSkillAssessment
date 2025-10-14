@@ -185,25 +185,15 @@ function renderAll(data){
   renderCharts();
 }
 
-async function init(){
-  try {
-    const snap = await fetch('/api/snapshot').then(r => r.json());
-    renderAll(snap);
-  } catch (e){
-    console.error('Failed to load snapshot', e);
-  }
+const BASE = location.pathname.endsWith('/') ? location.pathname : location.pathname + '/';
+const url  = (p) => BASE + p.replace(/^\//, '');
 
-  // Live updates
-  try {
-    const es = new EventSource('/api/stream');
-    es.addEventListener('update', (ev) => {
-      const payload = JSON.parse(ev.data);
-      renderAll(payload);
-    });
-    es.onerror = (e) => console.warn('EventSource error', e);
-  } catch (e){
-    console.warn('Stream unavailable', e);
-  }
+async function init() {
+  const snap = await fetch(url('api/snapshot')).then(r => r.json());
+  renderAll(snap);
+
+  const es = new EventSource(url('api/stream'));
+  es.addEventListener('update', (ev) => renderAll(JSON.parse(ev.data)));
 }
 
 function niceMaxFromData(values) {

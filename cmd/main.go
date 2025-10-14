@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -21,6 +22,8 @@ func main() {
 
 	log.Printf("at-ping starting: hosts=%d interval=%v timeout=%v port=%d privileged=%v window=%d push=%v",
 		len(cfg.Hosts), cfg.Interval, cfg.Timeout, cfg.Port, cfg.Privileged, cfg.Window, cfg.PushInterval)
+	addr := "localhost:" + strconv.Itoa(cfg.Port)
+	log.Printf("Web Dash: http://%s\n", addr)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -30,10 +33,12 @@ func main() {
 		log.Fatalf("monitor start: %v", err)
 	}
 
+
+
 	srv := web.NewServer(web.Options{
 		Addr:         cfg.ListenAddr(),
 		PushInterval: cfg.PushInterval,
-		StaticDir:    cfg.WebDir,
+		//StaticDir: cfg.WebDir //optional dev override
 	}, mgr)
 
 	go func() {
