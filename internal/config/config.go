@@ -70,8 +70,8 @@ func Parse() (Config, error) {
 		Privileged:   privileged,
 		Window:       window,
 		DownAfter:    downAfter,
-		//PushInterval: push,
-		//WebDir:       webdir,
+		PushInterval: push,
+		WebDir:       webdir,
 	}, nil
 }
 

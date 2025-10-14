@@ -1,0 +1,38 @@
+[Unit]
+Description=at-ping Host Health Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=atping
+Group=atping
+WorkingDirectory=/usr/local/bin
+
+# Runtime configuration (PORT, INTERVAL, etc.)
+EnvironmentFile=-/etc/at-ping/at-ping.env
+
+# Flags expand from the envfile. HOSTS_FILE defaults inside the envfile.
+ExecStart=/usr/local/bin/at-ping \
+  -hosts "@${HOSTS_FILE}" \
+  -interval ${INTERVAL} \
+  -window ${WINDOW} \
+  -port ${PORT}
+
+Restart=always
+RestartSec=3
+
+# ICMP without root (safe even if binary already has setcap)
+AmbientCapabilities=CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_RAW
+NoNewPrivileges=true
+
+# Hardening
+LockPersonality=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/etc/at-ping
+
+[Install]
+WantedBy=multi-user.target
