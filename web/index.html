@@ -1,15 +1,43 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>at-ping</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="/web/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>at-ping</h1>
-  <div id="hosts"></div>
-  <canvas id="latency" height="120"></canvas>
+  <header class="topbar">
+    <h1>Health Monitor</h1>
+    <div id="summary-pill" class="pill">—</div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel hosts">
+      <div class="panel-title">Hosts</div>
+      <div id="hosts" class="host-list"></div>
+    </aside>
+
+    <section class="panel charts">
+      <div class="panel-title" id="host-title">Select a host</div>
+
+      <div class="chart-card">
+        <div class="chart-title">Latency (RTT ms)</div>
+        <canvas id="latency"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Packet Loss</div>
+        <canvas id="loss"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span id="last-updated">Last updated: —</span>
+  </footer>
+
   <script src="/web/app.js"></script>
 </body>
 </html>

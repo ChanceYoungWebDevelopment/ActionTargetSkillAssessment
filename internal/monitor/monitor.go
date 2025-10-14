@@ -48,10 +48,16 @@ func (mgr *Manager) worker(ctx context.Context, host string, m *metrics.HostMetr
 	}
 }
 
+var initErrCount = make(map[string]int)
+
 func probeOnce(target string, timeout time.Duration, privileged bool) (time.Duration, bool) {
 p, err := ping.NewPinger(target)
-if err != nil {
-    log.Printf("probe error (pinger init): %v", err)
+if err != nil{
+	if initErrCount[target] < 3 {
+		log.Printf("[%s] probe error (pinger init): %v", target, err)
+		initErrCount[target]++
+	}
+
     return 0, false
 }
 if privileged {
@@ -68,11 +74,12 @@ if err := p.Run(); err != nil {
     log.Printf("probe run error: %v", err)
     return 0, false
 }
-
+initErrCount[target] = 0
 st := p.Statistics()
 if st.PacketsRecv == 1 {
     return st.AvgRtt, true
 }
+
 return 0, false
 
 }
