@@ -5,14 +5,25 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
+	"fmt"
+	"net"
 
 	"github.com/ChanceYoungWebDevelopment/ActionTargetSkillAssessment/internal/config"
 	"github.com/ChanceYoungWebDevelopment/ActionTargetSkillAssessment/internal/monitor"
 	"github.com/ChanceYoungWebDevelopment/ActionTargetSkillAssessment/internal/web"
 )
+
+func getOutboundIP() string {
+    conn, err := net.Dial("udp", "8.8.8.8:80")
+    if err != nil {
+        return "localhost" // fallback
+    }
+    defer conn.Close()
+    localAddr := conn.LocalAddr().(*net.UDPAddr)
+    return localAddr.IP.String()
+}
 
 func main() {
 	cfg, err := config.Parse()
@@ -20,9 +31,10 @@ func main() {
 		log.Fatalf("config error: %v", err)
 	}
 
-	log.Printf("at-ping starting: hosts=%d interval=%v timeout=%v port=%d privileged=%v window=%d push=%v",
-		len(cfg.Hosts), cfg.Interval, cfg.Timeout, cfg.Port, cfg.Privileged, cfg.Window, cfg.PushInterval)
-	addr := "localhost:" + strconv.Itoa(cfg.Port)
+	log.Printf("at-ping starting: hosts=%d interval=%v timeout=%v port=%d window=%d",
+		len(cfg.Hosts), cfg.Interval, cfg.Timeout, cfg.Port, cfg.Window)
+	ip := getOutboundIP()
+    addr := fmt.Sprintf("%s:%d", ip, cfg.Port)
 	log.Printf("Web Dash: http://%s\n", addr)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -33,12 +45,8 @@ func main() {
 		log.Fatalf("monitor start: %v", err)
 	}
 
-
-
 	srv := web.NewServer(web.Options{
-		Addr:         cfg.ListenAddr(),
-		PushInterval: cfg.PushInterval,
-		//StaticDir: cfg.WebDir //optional dev override
+		Addr: cfg.ListenAddr(),
 	}, mgr)
 
 	go func() {

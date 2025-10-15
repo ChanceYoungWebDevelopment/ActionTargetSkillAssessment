@@ -13,8 +13,6 @@ import (
 
 type Options struct {
 	Addr         string
-	PushInterval time.Duration
-	// Optional dev overrides (one or neither):
 	StaticFS  fs.FS  // if set, serve from this FS
 	StaticDir string // else if set, serve from disk dir
 }
@@ -68,6 +66,7 @@ func (s *Server) handleSnapshot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
@@ -102,7 +101,7 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) broadcastLoop() {
-	t := s.opts.PushInterval
+	t := 1*time.Second
 	if t <= 0 { t = time.Second }
 	ticker := time.NewTicker(t)
 	defer ticker.Stop()

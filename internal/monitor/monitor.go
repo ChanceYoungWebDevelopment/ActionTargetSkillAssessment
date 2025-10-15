@@ -12,18 +12,18 @@ import (
 
 type Manager struct {
 	m       map[string]*metrics.HostMetrics
-	window  int
+	dataWindow  int
 	downAfter int
 }
 
-func NewManager(window, downAfter int) *Manager {
-	return &Manager{m: make(map[string]*metrics.HostMetrics), window: window, downAfter: downAfter}
+func NewManager(dataWindow, downAfter int) *Manager {
+	return &Manager{m: make(map[string]*metrics.HostMetrics), dataWindow: dataWindow, downAfter: downAfter}
 }
 
 func (mgr *Manager) Start(ctx context.Context, cfg config.Config) error {
 	for _, h := range cfg.Hosts {
 		h := h
-		m := metrics.NewHostMetrics(h, mgr.window)
+		m := metrics.NewHostMetrics(h, mgr.dataWindow)
 		mgr.m[h] = m
 		go mgr.worker(ctx, h, m, cfg)
 	}
@@ -38,7 +38,7 @@ func (mgr *Manager) worker(ctx context.Context, host string, m *metrics.HostMetr
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			rtt, ok := probeOnce(host, cfg.Timeout, cfg.Privileged)
+			rtt, ok := probeOnce(host, cfg.Timeout)
 			if !ok {
 				m.Add(metrics.Sample{T: time.Now(), Success: false}, mgr.downAfter)
 			} else {
@@ -50,7 +50,7 @@ func (mgr *Manager) worker(ctx context.Context, host string, m *metrics.HostMetr
 
 var initErrCount = make(map[string]int)
 
-func probeOnce(target string, timeout time.Duration, privileged bool) (time.Duration, bool) {
+func probeOnce(target string, timeout time.Duration) (time.Duration, bool) {
 p, err := ping.NewPinger(target)
 if err != nil{
 	if initErrCount[target] < 3 {
@@ -59,12 +59,6 @@ if err != nil{
 	}
 
     return 0, false
-}
-if privileged {
-    p.SetPrivileged(true) // use raw ICMP
-} else {
-	p.SetPrivileged(false)
-	p.SetNetwork("udp4")
 }
 
 p.Count = 1

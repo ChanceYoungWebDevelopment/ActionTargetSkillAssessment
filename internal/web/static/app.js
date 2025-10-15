@@ -2,17 +2,19 @@ let latencyChart, lossChart;
 let state = { hosts: [], selectedIndex: 0, lastUpdated: null };
 let hostOrder = [];
 
-// Configure Chart.js to respect dark mode from CSS
+// ---------- Chart.js dark-mode defaults ----------
 Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
 Chart.defaults.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
 Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial';
 
 const lineColor = '#4da6ff';
 
+// ---------- Formatting helpers ----------
 function fmtPct(n){ return `${n.toFixed(1)}%`; }
 function fmtMs(n){ return `${n.toFixed(1)} ms`; }
 function nowStamp(){ return new Date().toLocaleString(); }
 
+// ---------- Math helpers ----------
 function movingAverage(arr, window=10){
   const out = new Array(arr.length).fill(null);
   let sum = 0, count = 0;
@@ -32,6 +34,55 @@ function seriesFromSamples(samples){
   return { labels, latency, loss01, rollPct };
 }
 
+// ---------- API origin discovery ----------
+const META_ORIGIN = document.querySelector('meta[name="api-origin"]')?.content?.trim();
+const CACHE_KEY = 'atping.apiOrigin.v1';
+
+async function fetchWithTimeout(url, ms = 1200) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try { return await fetch(url, { signal: ctrl.signal, cache: 'no-store' }); }
+  finally { clearTimeout(t); }
+}
+
+async function discoverApiOrigin() {
+  if (META_ORIGIN) return META_ORIGIN.replace(/\/+$/, '');
+  const cached = localStorage.getItem(CACHE_KEY);
+  if (cached) return cached;
+
+  const origin = location.origin && location.origin !== 'null' ? location.origin : null;
+  const candidates = new Set();
+  if (origin?.startsWith('http')) candidates.add(origin);
+
+  const hosts = [];
+  if (origin) {
+    const u = new URL(origin);
+    hosts.push(u.hostname);
+  } else {
+    hosts.push('localhost','127.0.0.1');
+  }
+  const ports = [8090,8091,8080,3000];
+  for (const h of hosts){ for (const p of ports){ candidates.add(`http://${h}:${p}`); } }
+  candidates.add('http://localhost:8090');
+  candidates.add('http://127.0.0.1:8090');
+
+  for (const cand of candidates){
+    try {
+      const r = await fetchWithTimeout(`${cand}/api/snapshot`, 900);
+      if (r.ok && r.headers.get('content-type')?.includes('application/json')){
+        localStorage.setItem(CACHE_KEY, cand);
+        return cand;
+      }
+    } catch {}
+  }
+  throw new Error('Could not discover API origin (no /api/snapshot responders).');
+}
+
+let API_ORIGIN = null;
+const api = (p) => `${API_ORIGIN}${p.startsWith('/') ? p : '/' + p}`;
+window.resetApiOrigin = () => localStorage.removeItem(CACHE_KEY);
+
+// ---------- UI renderers ----------
 function renderHostList(hosts){
   const list = document.getElementById('hosts');
   list.innerHTML = hosts.map((h, i) => {
@@ -82,16 +133,16 @@ function ensureCharts(){
     const ctx = document.getElementById('latency').getContext('2d');
     latencyChart = new Chart(ctx, {
       type: 'line',
-data: { labels: [], datasets: [{
-  label: 'RTT (ms)',
-  data: [],
-  borderColor: lineColor,
-  backgroundColor: lineColor + '33', // translucent fill under line
-  spanGaps: true,
-  pointRadius: 0,
-  borderWidth: 2,
-  tension: 0.25
-}]},
+      data: { labels: [], datasets: [{
+        label: 'RTT (ms)',
+        data: [],
+        borderColor: lineColor,
+        backgroundColor: lineColor + '33',
+        spanGaps: true,
+        pointRadius: 0,
+        borderWidth: 2,
+        tension: 0.25
+      }]},
       options: {
         animation: false,
         responsive: true,
@@ -111,15 +162,8 @@ data: { labels: [], datasets: [{
         labels: [],
         datasets: [
           {
-            type: 'bar',
-            label: 'Per-sample loss (0/1)',
-            data: [],
-            borderWidth: 0,
-            borderSkipped: false
-          },
-          {
             type: 'line',
-            label: 'Rolling loss (10-sample %) ',
+            label: 'Rolling loss (10-sample %)',
             data: [],
             spanGaps: true,
             pointRadius: 0,
@@ -147,36 +191,27 @@ data: { labels: [], datasets: [{
 function renderCharts(){
   const host = state.hosts[state.selectedIndex];
   if (!host || !host.samples) return;
-
   const { labels, latency, loss01, rollPct } = seriesFromSamples(host.samples);
-
   ensureCharts();
 
-  // Latency chart
   latencyChart.data.labels = labels;
   latencyChart.data.datasets[0].data = latency;
   const yMax = niceMaxFromData(latency);
-latencyChart.options.scales.y = {
-  beginAtZero: true,           // keeps zero on chart; remove if you want tight fit
-  suggestedMax: yMax,          // dynamic ceiling from data
-  ticks: { precision: 0 }
-};
+  latencyChart.options.scales.y = {
+    beginAtZero: true,
+    suggestedMax: yMax,
+    ticks: { precision: 0 }
+  };
   latencyChart.update('none');
 
-
-  // Loss chart
   lossChart.data.labels = labels;
-  lossChart.data.datasets[0].data = loss01.map(v => v*100); // show as 0 or 100 for visibility
-  lossChart.data.datasets[1].data = rollPct;                // smoothed %
+  lossChart.data.datasets[0].data = loss01.map(v => v*100);
   lossChart.update('none');
-
-  document.getElementById('last-updated').textContent = `Last updated: ${state.lastUpdated || nowStamp()}`;
 }
 
 function renderAll(data){
-  const ordered = (data.hosts || []).slice().sort((a,b) => a.host.localeCompare(b.host));
-  state.hosts = ordered
-  // keep selection stable; if the selected index is out-of-range, fallback to 0
+  const ordered = (data.hosts || []).slice().sort((a,b)=>a.host.localeCompare(b.host));
+  state.hosts = ordered;
   if (state.selectedIndex >= state.hosts.length) state.selectedIndex = 0;
   state.lastUpdated = nowStamp();
 
@@ -185,28 +220,40 @@ function renderAll(data){
   renderCharts();
 }
 
-const BASE = location.pathname.endsWith('/') ? location.pathname : location.pathname + '/';
-const url  = (p) => BASE + p.replace(/^\//, '');
-
-async function init() {
-  const snap = await fetch(url('api/snapshot')).then(r => r.json());
-  renderAll(snap);
-
-  const es = new EventSource(url('api/stream'));
-  es.addEventListener('update', (ev) => renderAll(JSON.parse(ev.data)));
-}
-
+// ---------- Chart scaling helper ----------
 function niceMaxFromData(values) {
   const nums = values.filter(v => Number.isFinite(v));
   if (!nums.length) return 100;
-  // ignore big spikes: use ~95th percentile
   const sorted = nums.slice().sort((a,b)=>a-b);
   const p95 = sorted[Math.floor(sorted.length * 0.95)];
   const base = Math.max(5, p95);
-  // round up to a “nice” step
-  const steps = [5, 10, 20, 25, 50, 100, 200, 500, 1000];
+  const steps = [5,10,20,25,50,100,200,500,1000];
   const step = steps.find(s => base / s <= 8) || 1000;
-  return Math.ceil((base * 1.1) / step) * step; // +10% headroom
+  return Math.ceil((base * 1.1) / step) * step;
+}
+
+// ---------- Bootstrap ----------
+async function init() {
+  try {
+    API_ORIGIN = await discoverApiOrigin();
+    console.log('API origin:', API_ORIGIN);
+
+    const snap = await fetch(api('/api/snapshot')).then(r => r.json());
+    renderAll(snap);
+
+    const es = new EventSource(api('/api/stream'));
+    const handle = (e) => {
+      try { renderAll(JSON.parse(e.data)); }
+      catch (err) { console.error('SSE JSON parse failed:', err, e.data); }
+    };
+    es.onmessage = handle;
+    es.addEventListener('update', handle);
+    es.onerror = (e) => console.warn('SSE error (browser auto-retries):', e);
+  } catch (err) {
+    console.error(err);
+    const el = document.getElementById('status');
+    if (el) el.textContent = 'Unable to connect to API. Check server/port.';
+  }
 }
 
 init();
