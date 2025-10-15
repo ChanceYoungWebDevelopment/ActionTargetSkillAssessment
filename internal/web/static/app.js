@@ -118,7 +118,7 @@ function updateSelectedUI(){
   const h = state.hosts[state.selectedIndex];
   const title = document.getElementById('host-title');
   if (h){
-    title.textContent = `${h.host} — ${h.up ? '🟢 UP' : '🔴 DOWN'} — loss ${fmtPct(h.loss_pct ?? 0)} — avg ${fmtMs(h.avg_rtt_ms ?? 0)}`;
+    title.textContent = `${h.host} — ${h.up ? '🟢 UP' : '🔴 DOWN'} — loss ${fmtPct(h.loss_pct ?? 0)} — avg ${fmtMs(h.avg_rtt_ms ?? 0)} - window: ${h.samples.length}`;
   } else {
     title.textContent = 'Select a host';
   }

@@ -29,12 +29,24 @@ type HostMetrics struct {
 }
 
 func NewHostMetrics(host string, window int) *HostMetrics {
-	return &HostMetrics{
+	m := &HostMetrics{
 		Host:     host,
 		Win:      make([]Sample, window),
 		Up:       true,
 		LastFlip: time.Now(),
+		Count:    window, // pretend full window already filled
 	}
+	now := time.Now()
+	step := -time.Second // or use cfg.Interval later
+	for i := 0; i < window; i++ {
+		m.Win[i] = Sample{
+			T:       now.Add(time.Duration(i-window) * step),
+			Success: true,
+			RTT:     0, // baseline
+		}
+	}
+	m.Succ = window
+	return m
 }
 
 func (m *HostMetrics) Add(s Sample, downAfter int) {
