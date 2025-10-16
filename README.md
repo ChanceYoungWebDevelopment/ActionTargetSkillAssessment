@@ -1,7 +1,4 @@
-
-# ActionTarget Skill Assessment
-
-  ## Program Overview
+## Program Overview
 
 A Go-based Linux console application that continuously pings specified hosts, tracks uptime metrics, and serves a real-time web dashboard using embedded static assets.
 
