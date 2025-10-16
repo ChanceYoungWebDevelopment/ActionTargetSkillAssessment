@@ -71,6 +71,33 @@ Once installed, visit your dashboard at:
 ```http://<your-server-ip>:8090```
 
 **PLEASE** review the **Requirements** section before running this.
+--- 
+### Dashboard Preview
+
+![Dashboard Screenshot](web/static/dashboardscreenshot.jpg)
+
+The dashboard presents:
+
+-   **Latency Chart:** Line graph of recent round-trip times (RTT ms)
+    
+-   **Packet Loss Chart:** Rolling average of packet loss over the configured window
+    
+-   **Host List:** Status overview with current uptime metrics and averages
+    
+
+> **Metric Note:**  
+> The sidebar and header display _average packet loss over the rolling window_, while the loss chart visualizes the _trend_ as a rolling percentage line.
+
+---
+
+### Testing Downed Hosts
+
+To verify that failure detection works properly:
+
+-   **Use unroutable IPs:**  
+    e.g. `192.0.2.1`, `198.51.100.1`, or `203.0.113.1` — these never respond to ICMP.
+
+Your dashboard should mark the host as **DOWN** after the configured `--down-after` threshold, with the loss graph jumping to 100%.
 
 ## Design and Implementation Notes
 
@@ -116,5 +143,5 @@ Dark-mode styling and minimal layout were added for clarity and professional pre
     
 -   **Systemd + Capabilities:** Align with modern Linux service practices for persistent and secure operation.
 
-© 2025 Chance Young
+MIT License © 2025 Chance Young
 > Written with [StackEdit](https://stackedit.io/).
