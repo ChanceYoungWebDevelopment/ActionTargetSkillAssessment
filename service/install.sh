@@ -51,9 +51,8 @@ if [ ! -f "$HOSTS_FILE" ]; then
   sudo tee "$HOSTS_FILE" >/dev/null <<'EOF'
 # One host per line (blank lines and # comments ignored)
 1.1.1.1
-8.8.8.8
+192.0.2.1
 example.com
-ping.online.net
 EOF
   sudo chown atping:atping "$HOSTS_FILE"
   sudo chmod 0644 "$HOSTS_FILE"

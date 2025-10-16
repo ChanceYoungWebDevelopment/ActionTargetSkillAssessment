@@ -25,8 +25,8 @@ func Parse() (Config, error) {
 	var interval, timeout time.Duration
 	var port, window, downAfter int
 
-	flag.StringVar(&hostsRaw, "hosts", "example.com", "comma list or @/path/to/file")
-	flag.DurationVar(&interval, "interval", 2*time.Second, "probe interval")
+	flag.StringVar(&hostsRaw, "hosts", "1.1.1.1,example.com,192.0.2.1", "comma list or @/path/to/file")
+	flag.DurationVar(&interval, "interval", 1*time.Second, "probe interval")
 	flag.DurationVar(&timeout, "timeout", 800*time.Millisecond, "per-probe timeout (must be < interval)")
 	flag.IntVar(&port, "port", 8090, "http port")
 	flag.IntVar(&window, "window", 120, "rolling window size (samples)")

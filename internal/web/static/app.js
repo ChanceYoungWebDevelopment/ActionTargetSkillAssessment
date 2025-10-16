@@ -93,7 +93,7 @@ function renderHostList(hosts){
       <button class="host ${i===state.selectedIndex?'active':''}" data-index="${i}" title="Click to view charts">
         <div>
           <div class="name">${statusDot}${h.host}</div>
-          <div class="meta">loss ${loss} • avg ${avg}</div>
+          <div class="meta">loss avg ${loss} • avg RTT ${avg}</div>
         </div>
       </button>
     `;
@@ -118,7 +118,7 @@ function updateSelectedUI(){
   const h = state.hosts[state.selectedIndex];
   const title = document.getElementById('host-title');
   if (h){
-    title.textContent = `${h.host} — ${h.up ? '🟢 UP' : '🔴 DOWN'} — loss ${fmtPct(h.loss_pct ?? 0)} — avg ${fmtMs(h.avg_rtt_ms ?? 0)} - window: ${h.samples.length}`;
+    title.textContent = `${h.host} — ${h.up ? '🟢 UP' : '🔴 DOWN'} — loss avg ${fmtPct(h.loss_pct ?? 0)} — avg RTT ${fmtMs(h.avg_rtt_ms ?? 0)} - : ${h.samples.length}`;
   } else {
     title.textContent = 'Select a host';
   }
@@ -163,7 +163,7 @@ function ensureCharts(){
         datasets: [
           {
             type: 'line',
-            label: 'Rolling loss (10-sample %)',
+            label: 'Rolling loss',
             data: [],
             spanGaps: true,
             pointRadius: 0,
@@ -182,7 +182,7 @@ function ensureCharts(){
           x: { grid: { display: false }, ticks: { display: false } },
           y: { beginAtZero: true, suggestedMax: 100 }
         },
-        plugins: { legend: { display: true } }
+        plugins: { legend: { display: false } }
       }
     });
   }

@@ -1,4 +1,3 @@
 1.1.1.1
 example.com
-ping.online.net
-ping.he.net
+192.0.2.1
