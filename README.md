@@ -74,7 +74,7 @@ Once installed, visit your dashboard at:
 --- 
 ### Dashboard Preview
 
-![Dashboard Screenshot](web/static/dashboardscreenshot.jpg)
+![Dashboard Screenshot](https://github.com/ChanceYoungWebDevelopment/ActionTargetSkillAssessment/blob/main/internal/web/static/dashboardscreenshot.jpg)
 
 The dashboard presents:
 
