@@ -50,7 +50,7 @@ make run
 ```
 
 ### Required flags
-- hosts -> allows for specifying the target hosts. *Note: you can set the list of hosts with a txt file by passing @/path/to/your/txt*. Defaults to: example.com
+- hosts -> allows for specifying the target hosts. *Note: you can set the list of hosts with a txt file by passing @/path/to/your/txt*. Defaults to: 1.1.1.1,example.com,192.0.2.1
 - port -> specifies the port used by the UI dashboard. Defaults to 8090.
 - interval -> specifies the interval used by the monitors for each host. *This will apply to all host probes.* Defaults to 1 second. 
 
