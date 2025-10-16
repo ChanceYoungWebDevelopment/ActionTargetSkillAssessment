@@ -18,7 +18,7 @@ import (
 func getOutboundIP() string {
     conn, err := net.Dial("udp", "8.8.8.8:80")
     if err != nil {
-        return "localhost" // fallback
+        return "localhost" 
     }
     defer conn.Close()
     localAddr := conn.LocalAddr().(*net.UDPAddr)
@@ -60,5 +60,5 @@ func main() {
 	shCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(shCtx)
-	log.Println("at-ping stopped")
+	log.Println("stopped")
 }
